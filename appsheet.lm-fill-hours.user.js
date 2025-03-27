@@ -6,8 +6,9 @@
 // @author       Gerard Ribugent <ribugent@gmail.com>
 // @match        https://www.appsheet.com/start/c1141281-d882-4fef-80fc-d82f5fd8094a?*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=appsheet.com
-// @grant        unsafeWindow
+// @grant        none
 // ==/UserScript==
+'use strict';
 
 const WORKING_SCHEDULE = [
     { start: '8:00', end: '12:00' },
@@ -16,98 +17,109 @@ const WORKING_SCHEDULE = [
 const DEFAULT_ENTROPY_MINUTES = 10;
 
 (function() {
-    'use strict';
-
     addEventListener("hashchange", event => detectDetailPage(new URL(event.newURL)));
     detectDetailPage(document.URL);
 })();
 
-function detectDetailPage(url) {
-    const sectionElement = document.querySelector("div[data-view-state-key]")
+async function detectDetailPage(url) {
+    const [sectionElement] = await waitFor("div[data-view-state-key]")
     const stateKey = JSON.parse(sectionElement.dataset.viewStateKey)
 
     if (stateKey.Name === "Detail") {
-        renderExtraButtons(sectionElement)
+        await renderExtraButtons(sectionElement)
     }
 }
 
-function renderExtraButtons(sectionElement) {
+async function renderExtraButtons(sectionElement) {
     if (sectionElement.querySelector('#fillMonth, #fillToday')) {
         return;
     }
 
-    const addButton = sectionElement.querySelector('button[aria-label="Add"]')
+    const [addButton] = await waitFor('button[aria-label="Add"]')
 
-    const fillToday = document.createElement('button');
-    fillToday.innerText = '✅ Fill Today';
-    fillToday.id='fillToday';
-    fillToday.type = 'button'
-    fillToday.onclick = () => trackDate(addButton, new Date());
-    addButton.parentElement.prepend(fillToday);
-
-
-    /* const fillMonth = document.createElement('button');
-    fillMonth.innerText = '📅 Fill Month';
-    fillMonth.id='fillMonth';
-    fillMonth.type = 'button'
-    addButton.parentElement.prepend(fillMonth);*/
+    const fillTodayButton = document.createElement('button');
+    fillTodayButton.innerText = '✅ Fill Today';
+    fillTodayButton.id='fillToday';
+    fillTodayButton.type = 'button'
+    fillTodayButton.onclick = () => fillToday(addButton);
+    addButton.parentElement.prepend(fillTodayButton);
 }
 
-async function trackDate(addButton, date) {
+async function fillToday(addButton) {
+    const today = new Date();
+
+    const clockHours = WORKING_SCHEDULE.map(schedule => {
+        const begin = schedule.start.split(':');
+        const end = schedule.end.split(':');
+
+        today.setUTCHours(...begin, 0, 0);
+        const clockIn = today.toISOString().replace(/\.\d+(?:Z)$/, '')
+
+        today.setUTCHours(...end, 0, 0);
+        const clockOut = today.toISOString().replace(/\.\d+(?:Z)$/, '')
+
+        return [clockIn, clockOut];
+    });
+
+    for (const [clockIn, clockOut] of clockHours) {
+        await trackDate(addButton, clockIn, clockOut);
+    }
+}
+
+async function trackDate(addButton, clockInDate, clockOutDate) {
     addButton.click();
 
     const trackForm = document.querySelector('div[aria-label="Manual Entry"]');
 
-	const typeOfDay = trackForm.querySelector('div.Attr_Type_of_day span.ASTappable.ButtonSelectButton');
-    console.log(typeOfDay)
-    let click = new Event('mousedown', { bubbles: true, cancelable: false, view: window });
-    typeOfDay.dispatchEvent(click);
-	click = new Event('mouseup', { bubbles: true, cancelable: false, view: window });
-	typeOfDay.dispatchEvent(click);
-	click = new Event('click', { bubbles: true, cancelable: false, view: window });
-	typeOfDay.dispatchEvent(click);
-
-	console.log('Clicked type of day');
-
-	// await sleep(500);
-
-
-	console.log(`Input date: ${date.toISOString()}`);
-
     const clockIn = trackForm.querySelector('div.Attr_Clock_In input');
     const clockOut = trackForm.querySelector('div.Attr_Clock_Out input');
+    fillInputDate(clockIn, clockInDate);
+    fillInputDate(clockOut, clockOutDate);
 
-    date.setUTCHours(8);
-    date.setUTCMinutes(0);
-	date.setUTCSeconds(0);
-	const clockInDate = date.toISOString().replace(/\.\d+(?:Z)$/, '')
-	console.log(`Clock in date: ${clockInDate}`);
-    clockIn.focus();
-    clockIn.value = clockInDate
-    clockIn.dispatchEvent(new Event('change', { bubbles: true, cancelable: false, view: window }));
-    // await sleep(500);
+	const typeOfDay = trackForm.querySelector('div.Attr_Type_of_day span.ASTappable.ButtonSelectButton');
+    for (const event of ['mousedown', 'mouseup', 'click']) {
+        typeOfDay.dispatchEvent(new Event(event, { bubbles: true, cancelable: false, view: window }));
+    }
 
-    date.setUTCHours(12);
-    date.setUTCMinutes(0);
-    date.setUTCSeconds(0);
-    const clockOutDate = date.toISOString().replace(/\.\d+(?:Z)$/, '')
-	console.log(`Clock out date: ${clockOutDate}`);
-    clockOut.focus();
-    clockOut.value = clockOutDate
-    clockOut.dispatchEvent(new Event('change', { bubbles: true, cancelable: false, view: window }));
-    // await sleep(1000);
-	console.log(`Clock out: ${clockOut.value}`)
+    await waitFor('div.Attr_Type_of_day span.ASTappable.ButtonSelectButton.ButtonSelectButton--selected', trackForm);
 
 	const saveButton = trackForm.querySelector('div[data-testid=subnav-header] button:last-child');
 	if (saveButton.innerText === 'Save') {
         saveButton.focus();
-        await sleep(1000);
 		saveButton.click();
 	} else {
 		console.log('Save button not found');
+        throw new Error('Save button not found');
 	}
+}
+
+function fillInputDate(input, date) {
+    input.focus();
+    input.value = date
+    input.dispatchEvent(new Event('change', { bubbles: true, cancelable: false, view: window }));
+    input.dispatchEvent(new Event('focusout', { bubbles: true, cancelable: false, view: window }));
 }
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+function waitFor(selector, root = document) {
+    const started = Date.now();
+
+    return new Promise((resolve, reject) => {
+      const check = () => {
+        const elements = root.querySelectorAll(selector);
+        if (elements.length > 0) {
+          resolve(elements);
+        } else {
+          if (Date.now() - started > 10000) {
+            reject(new Error("Timeout waiting for " + selector));
+          } else {
+            setTimeout(check, 100);
+          }
+        }
+      };
+      check();
+    });
+  }
