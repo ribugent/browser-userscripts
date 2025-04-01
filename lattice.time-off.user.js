@@ -18,6 +18,10 @@ const REGEXES = [/^Vacation: \d/, /^Vacation: Carry/];
       onTimeOffPage();
     }
   };
+
+  if (document.URL.match(/\/users\/.+?\/time-off$/)) {
+    onTimeOffPage();
+  }
 })();
 
 async function onTimeOffPage() {
