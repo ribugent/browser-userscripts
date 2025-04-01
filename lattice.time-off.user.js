@@ -50,6 +50,7 @@ async function onTimeOffPage() {
 
   const policiesList = document.querySelector("ul.Carousel_scroll__i91Oz");
   policiesList.replaceChildren(...orderedPolicies);
+  policiesList.scroll(0 ,0);
 };
 
 function extractPolicy(policies, match) {
