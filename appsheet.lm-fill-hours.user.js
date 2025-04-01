@@ -36,13 +36,23 @@ async function renderExtraButtons(sectionElement) {
     }
 
     const [addButton] = await waitFor('button[aria-label="Add"]')
+    const buttonClass = "f-jss36 f-jss7 f-jss15 f-jss6 navbar-primary-button f-jss16 f-jss26 f-jss28 f-jss18 f-jss128 f-jss99 f-jss107 f-jss98 navbar-primary-button f-jss108 f-jss118 f-jss120 f-jss110";
 
     const fillTodayButton = document.createElement('button');
     fillTodayButton.innerText = '✅ Fill Today';
     fillTodayButton.id='fillToday';
     fillTodayButton.type = 'button'
+    fillTodayButton.className = buttonClass;
     fillTodayButton.onclick = () => fillToday(addButton);
     addButton.parentElement.prepend(fillTodayButton);
+
+    const fillMonthButton = document.createElement('button');
+    fillMonthButton.innerText = '📅 Fill month';
+    fillMonthButton.id='fillMonth';
+    fillMonthButton.type = 'button'
+    fillMonthButton.className = buttonClass;
+    fillMonthButton.onclick = () => fillMonth(addButton);
+    addButton.parentElement.prepend(fillMonthButton);
 }
 
 async function fillToday(addButton) {
@@ -60,6 +70,33 @@ async function fillToday(addButton) {
 
         return [clockIn, clockOut];
     });
+
+    for (const [clockIn, clockOut] of clockHours) {
+        await trackDate(addButton, clockIn, clockOut);
+    }
+}
+
+async function fillMonth(addButton) {
+    const daysToFill = await getDaysToFill();
+
+    console.log("Days to fill", daysToFill);
+
+    const clockHours = WORKING_SCHEDULE.flatMap(schedule => {
+        return daysToFill.map(day => {
+            const begin = schedule.start.split(':');
+            const end = schedule.end.split(':');
+
+            day.setUTCHours(...begin, 0, 0);
+            const clockIn = day.toISOString().replace(/\.\d+(?:Z)$/, '')
+
+            day.setUTCHours(...end, 0, 0);
+            const clockOut = day.toISOString().replace(/\.\d+(?:Z)$/, '')
+
+            return [clockIn, clockOut];
+        });
+    });
+
+    console.log("Clock hours", clockHours);
 
     for (const [clockIn, clockOut] of clockHours) {
         await trackDate(addButton, clockIn, clockOut);
@@ -86,7 +123,8 @@ async function trackDate(addButton, clockInDate, clockOutDate) {
 	const saveButton = trackForm.querySelector('div[data-testid=subnav-header] button:last-child');
 	if (saveButton.innerText === 'Save') {
         saveButton.focus();
-		saveButton.click();
+        saveButton.click();
+        await sleep(100);
 	} else {
 		console.log('Save button not found');
         throw new Error('Save button not found');
@@ -98,6 +136,54 @@ function fillInputDate(input, date) {
     input.value = date
     input.dispatchEvent(new Event('change', { bubbles: true, cancelable: false, view: window }));
     input.dispatchEvent(new Event('focusout', { bubbles: true, cancelable: false, view: window }));
+}
+
+async function getDaysToFill() {
+    const now = new Date();
+    now.setUTCHours(12, 0, 0, 0);
+    const start = new Date(now.getUTCFullYear(), now.getUTCMonth(), 1, 12, 0, 0, 0);
+
+    const lastDayOfMonth = new Date(start.toISOString());
+    lastDayOfMonth.setUTCMonth(start.getUTCMonth() + 1, 0);
+
+    const filledDays = await extractFilledDays();
+    const daysToFill = [];
+    while (start <= lastDayOfMonth) {
+        const isWeekDay = start.getDay() > 0 && start.getDay() < 6;
+        const isFilled = filledDays.has(`${start.getDate()}/${start.getMonth() + 1}/${start.getFullYear()}`);
+
+        if (isWeekDay && !isFilled) {
+            daysToFill.push(new Date(start.getTime()));
+        }
+
+        start.setDate(start.getDate() + 1);
+    }
+    return daysToFill;
+}
+
+async function extractFilledDays() {
+    const filledDays = new Set();
+    const table = document.querySelector("div.TableView__list");
+
+    const initialScrollTop = table.scrollTop;
+    table.scrollTo(0, 0);
+    while (table.scrollTop < table.scrollHeight) {
+        const scrollTo = Math.min(table.scrollTop + 200, table.scrollHeight);
+        table.scrollTo(0, scrollTo);
+        await sleep(10); // Let event loop to work and render elements
+        [...document.querySelectorAll("span[data-testid=date-time-type-display-span]")].map(e => e.innerText.split(" ")[0]).forEach(day => filledDays.add(day));
+
+        // If we didn't scroll, we've reached the bottom
+        if (scrollTo !== table.scrollTop) {
+            break;
+        }
+    }
+
+    table.scrollTo(0, initialScrollTop);
+
+    console.log("Filled days", filledDays);
+
+    return filledDays;
 }
 
 function sleep(ms) {
