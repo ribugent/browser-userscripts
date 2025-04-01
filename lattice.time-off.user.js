@@ -10,6 +10,7 @@
 // ==/UserScript==
 "use strict";
 
+const VACATION_DAYS = 24;
 const REGEXES = [/^Vacation: \d/, /^Vacation: Carry/];
 
 (function () {
@@ -38,7 +39,14 @@ async function onTimeOffPage() {
   }
 
   orderedPolicies.push(...policies);
-  orderedPolicies.forEach((p) => p.style.removeProperty("scroll-snap-align"));
+
+  orderedPolicies.forEach(policy => {
+    policy.style.removeProperty("scroll-snap-align")
+
+    if (policy.innerText.match(/days?.*?available/)) {
+      patchVacationStats(policy, policy.innerText.match(/^Vacation: \d/));
+    }
+  });
 
   const policiesList = document.querySelector("ul.Carousel_scroll__i91Oz");
   policiesList.replaceChildren(...orderedPolicies);
@@ -50,6 +58,24 @@ function extractPolicy(policies, match) {
     return policies.splice(index, 1)[0];
   } else {
     return null;
+  }
+}
+
+function patchVacationStats(vacationPolicy, isEarned) {
+  const [earnedRaw, ...earnedText] = vacationPolicy.childNodes[0].childNodes[1].childNodes[0].innerText.split(" ");
+  const [scheduledRaw] = vacationPolicy.childNodes[0].childNodes[2].childNodes[0].innerText.split(' ')
+
+  const earnedAvailable = parseFloat(earnedRaw);
+  const scheduled = parseFloat(scheduledRaw);
+
+  const totalAvailable = isEarned ? VACATION_DAYS : earnedAvailable;
+  const available = totalAvailable - scheduled;
+  const availableText = [`${available}/${totalAvailable}`, ...earnedText].join(" ");
+
+  vacationPolicy.childNodes[0].childNodes[1].childNodes[0].innerText = availableText;
+
+  if (isEarned) {
+    vacationPolicy.childNodes[0].childNodes[2].childNodes[0].innerText += ` (${earnedAvailable} earned)`;
   }
 }
 
