@@ -43,7 +43,7 @@ async function onTimeOffPage() {
   orderedPolicies.forEach(policy => {
     policy.style.removeProperty("scroll-snap-align")
 
-    if (policy.innerText.match(/days?.*?available/)) {
+    if (policy.innerText.match(/days?.*?available/) && !policy.classList.contains("patched-stats")) {
       patchVacationStats(policy, policy.innerText.match(/^Vacation: \d/));
     }
   });
@@ -78,6 +78,8 @@ function patchVacationStats(vacationPolicy, isEarned) {
   if (isEarned) {
     vacationPolicy.childNodes[0].childNodes[2].childNodes[0].innerText += ` (${earnedAvailable} earned)`;
   }
+
+  vacationPolicy.classList.add("patched-stats");
 }
 
 function waitFor(selector) {
