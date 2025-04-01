@@ -14,7 +14,7 @@ const WORKING_SCHEDULE = [
     { start: '8:00', end: '12:00' },
     { start: '12:30', end: '16:30' }
 ];
-const DEFAULT_ENTROPY_MINUTES = 10;
+const ENTROPY_MINUTES = 10;
 
 (function() {
     addEventListener("hashchange", event => detectDetailPage(new URL(event.newURL)));
@@ -58,14 +58,18 @@ async function renderExtraButtons(sectionElement) {
 async function fillToday(addButton) {
     const today = new Date();
 
-    const clockHours = WORKING_SCHEDULE.map(schedule => {
+    const minuteDiff = [...Array(WORKING_SCHEDULE.length)].map(_ => Math.ceil(Math.random() * ENTROPY_MINUTES));
+
+    const clockHours = WORKING_SCHEDULE.map((schedule, idx) => {
         const begin = schedule.start.split(':');
         const end = schedule.end.split(':');
 
         today.setUTCHours(...begin, 0, 0);
+        today.setUTCMinutes(today.getUTCMinutes() + minuteDiff[idx]);
         const clockIn = today.toISOString().replace(/\.\d+(?:Z)$/, '')
 
         today.setUTCHours(...end, 0, 0);
+        today.setUTCMinutes(today.getUTCMinutes() + minuteDiff[minuteDiff.length - 1 - idx])
         const clockOut = today.toISOString().replace(/\.\d+(?:Z)$/, '')
 
         return [clockIn, clockOut];
