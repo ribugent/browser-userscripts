@@ -41,8 +41,7 @@ async function onTimeOffPage() {
   orderedPolicies.forEach((p) => p.style.removeProperty("scroll-snap-align"));
 
   const policiesList = document.querySelector("ul.Carousel_scroll__i91Oz");
-  policiesList.innerHTTML = "";
-  policiesList.append(...orderedPolicies);
+  policiesList.replaceChildren(...orderedPolicies);
 };
 
 function extractPolicy(policies, match) {
