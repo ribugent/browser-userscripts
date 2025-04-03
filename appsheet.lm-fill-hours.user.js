@@ -74,7 +74,7 @@ async function renderExtraButtons(sectionElement) {
     addButton.parentElement.prepend(fillTodayButton);
 
     const fillMonthButton = document.createElement('button');
-    fillMonthButton.innerText = '📅 Fill month';
+    fillMonthButton.innerText = '📅 Fill current month';
     fillMonthButton.id='fillMonth';
     fillMonthButton.type = 'button'
     fillMonthButton.className = buttonClass;
@@ -108,7 +108,7 @@ async function fillToday(addButton) {
 }
 
 async function fillMonth(addButton) {
-    const daysToFill = await getDaysToFill();
+    const daysToFill = await getDaysToFillForMonth();
 
     console.log("Days to fill", daysToFill);
 
@@ -169,10 +169,9 @@ function fillInputDate(input, date) {
     input.dispatchEvent(new Event('focusout', { bubbles: true, cancelable: false, view: window }));
 }
 
-async function getDaysToFill() {
-    const now = new Date();
-    now.setUTCHours(12, 0, 0, 0);
-    const start = new Date(now.getUTCFullYear(), now.getUTCMonth(), 1, 12, 0, 0, 0);
+async function getDaysToFillForMonth(date = new Date()) {
+    date.setUTCHours(12, 0, 0, 0);
+    const start = new Date(date.getUTCFullYear(), date.getUTCMonth(), 1, 12, 0, 0, 0);
 
     const lastDayOfMonth = new Date(start.toISOString());
     lastDayOfMonth.setUTCMonth(start.getUTCMonth() + 1, 0);
