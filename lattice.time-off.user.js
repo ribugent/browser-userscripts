@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Lattice time off improvements
 // @namespace    http://tampermonkey.net/
-// @version      2025-03-25
+// @version      2025-04-03
 // @description  Reorders and show the vacations balance days on time off page
 // @author       Gerard Ribugent
 // @match        https://launchmetrics.latticehq.com/*

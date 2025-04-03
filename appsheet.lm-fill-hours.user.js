@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fill hours
 // @namespace    http://tampermonkey.net/
-// @version      2025-03-03
+// @version      2025-04-03
 // @description  Fill hours for our beloved LM time tracking
 // @author       Gerard Ribugent <ribugent@gmail.com>
 // @match        https://www.appsheet.com/start/c1141281-d882-4fef-80fc-d82f5fd8094a?*
