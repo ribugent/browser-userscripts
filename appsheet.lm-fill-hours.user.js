@@ -70,7 +70,7 @@ async function renderExtraButtons(sectionElement) {
     fillTodayButton.id='fillToday';
     fillTodayButton.type = 'button'
     fillTodayButton.className = buttonClass;
-    fillTodayButton.onclick = () => fillDate(addButton);
+    setOnClickFullButton(fillTodayButton, () => fillDate(addButton));
     addButton.parentElement.prepend(fillTodayButton);
 
     const fillUpToTodayButton = document.createElement('button');
@@ -78,9 +78,7 @@ async function renderExtraButtons(sectionElement) {
     fillUpToTodayButton.id='fillUpToToday';
     fillUpToTodayButton.type = 'button'
     fillUpToTodayButton.className = buttonClass;
-    fillUpToTodayButton.onclick = () => {
-        fillMonth(addButton, new Date(), true);
-    };
+    setOnClickFullButton(fillUpToTodayButton, () => fillMonth(addButton, new Date(), true));
     addButton.parentElement.prepend(fillUpToTodayButton);
 
     const fillCurrentMonth = document.createElement('button');
@@ -88,7 +86,7 @@ async function renderExtraButtons(sectionElement) {
     fillCurrentMonth.id='fillMonth';
     fillCurrentMonth.type = 'button'
     fillCurrentMonth.className = buttonClass;
-    fillCurrentMonth.onclick = () => fillMonth(addButton);
+    setOnClickFullButton(fillCurrentMonth, () => fillMonth(addButton));
     addButton.parentElement.prepend(fillCurrentMonth);
 
     const fillPreviousMonth = document.createElement('button');
@@ -96,18 +94,28 @@ async function renderExtraButtons(sectionElement) {
     fillPreviousMonth.id='fillPreviousMonth';
     fillPreviousMonth.type = 'button'
     fillPreviousMonth.className = buttonClass;
-    fillPreviousMonth.onclick = () => {
+    setOnClickFullButton(fillPreviousMonth, () => {
         const date = new Date();
         date.setUTCMonth(date.getUTCMonth() - 1);
-        fillMonth(addButton, date);
-    };
+        return fillMonth(addButton, date);
+    });
     addButton.parentElement.prepend(fillPreviousMonth);
+}
+
+function setOnClickFullButton(button, callback) {
+    button.onclick = async () => {
+        showWorkingOverlay();
+        await callback();
+        alert("⚠️ Everything is done, please check everything is ok, specially your holidays or other days off! ⚠️");
+        nukeWorkingOverlay();
+    }
 }
 
 async function fillDate(addButton, date = new Date()) {
     const clockHours = buildClockHours(date);
 
     for (const [clockIn, clockOut] of clockHours) {
+        console.log("Filling", clockIn, clockOut);
         await trackDate(addButton, clockIn, clockOut);
     }
 }
@@ -229,6 +237,36 @@ function buildClockHours(date) {
     });
 
     return clockHours;
+}
+
+function showWorkingOverlay() {
+    const overlay = document.createElement('div');
+    overlay.id = 'lm-fill-hours-working-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    overlay.style.zIndex = '9999';
+
+    const img = document.createElement('img');
+    img.src = "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMzkzdDN6aDJpcm53ZWdsZWF4N2lrYnR3OHVnYWYzMGo4cTNwNzhjNCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/lgcUUCXgC8mEo/200.gif";
+    img.style.position = 'fixed';
+    img.style.top = '50%';
+    img.style.left = '50%';
+    img.style.transform = 'translate(-50%, -50%)';
+    img.style.maxWidth = '80%';
+    img.style.maxHeight = '80%';
+    img.style.zIndex = '10000';
+    overlay.appendChild(img);
+
+    nukeWorkingOverlay();
+    document.body.appendChild(overlay);
+}
+
+function nukeWorkingOverlay() {
+    document.getElementById('lm-fill-hours-working-overlay')?.remove();
 }
 
 function sleep(ms) {
