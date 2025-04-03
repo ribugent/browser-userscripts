@@ -70,67 +70,55 @@ async function renderExtraButtons(sectionElement) {
     fillTodayButton.id='fillToday';
     fillTodayButton.type = 'button'
     fillTodayButton.className = buttonClass;
-    fillTodayButton.onclick = () => fillToday(addButton);
+    fillTodayButton.onclick = () => fillDate(addButton);
     addButton.parentElement.prepend(fillTodayButton);
 
-    const fillMonthButton = document.createElement('button');
-    fillMonthButton.innerText = '📅 Fill current month';
-    fillMonthButton.id='fillMonth';
-    fillMonthButton.type = 'button'
-    fillMonthButton.className = buttonClass;
-    fillMonthButton.onclick = () => fillMonth(addButton);
-    addButton.parentElement.prepend(fillMonthButton);
+    const fillUpToTodayButton = document.createElement('button');
+    fillUpToTodayButton.innerText = '📝 Fill Up To Today';
+    fillUpToTodayButton.id='fillUpToToday';
+    fillUpToTodayButton.type = 'button'
+    fillUpToTodayButton.className = buttonClass;
+    fillUpToTodayButton.onclick = () => {
+        fillMonth(addButton, new Date(), true);
+    };
+    addButton.parentElement.prepend(fillUpToTodayButton);
+
+    const fillCurrentMonth = document.createElement('button');
+    fillCurrentMonth.innerText = '📅 Fill current month';
+    fillCurrentMonth.id='fillMonth';
+    fillCurrentMonth.type = 'button'
+    fillCurrentMonth.className = buttonClass;
+    fillCurrentMonth.onclick = () => fillMonth(addButton);
+    addButton.parentElement.prepend(fillCurrentMonth);
+
+    const fillPreviousMonth = document.createElement('button');
+    fillPreviousMonth.innerText = '📆 Fill previous month';
+    fillPreviousMonth.id='fillPreviousMonth';
+    fillPreviousMonth.type = 'button'
+    fillPreviousMonth.className = buttonClass;
+    fillPreviousMonth.onclick = () => {
+        const date = new Date();
+        date.setUTCMonth(date.getUTCMonth() - 1);
+        fillMonth(addButton, date);
+    };
+    addButton.parentElement.prepend(fillPreviousMonth);
 }
 
-async function fillToday(addButton) {
-    const today = new Date();
-
-    const minuteDiff = [...Array(WORKING_SCHEDULE.length)].map(_ => Math.ceil(Math.random() * ENTROPY_MINUTES));
-
-    const clockHours = WORKING_SCHEDULE.map((schedule, idx) => {
-        const begin = schedule.start.split(':');
-        const end = schedule.end.split(':');
-
-        today.setUTCHours(...begin, 0, 0);
-        today.setUTCMinutes(today.getUTCMinutes() + minuteDiff[idx]);
-        const clockIn = today.toISOString().replace(/\.\d+(?:Z)$/, '')
-
-        today.setUTCHours(...end, 0, 0);
-        today.setUTCMinutes(today.getUTCMinutes() + minuteDiff[minuteDiff.length - 1 - idx])
-        const clockOut = today.toISOString().replace(/\.\d+(?:Z)$/, '')
-
-        return [clockIn, clockOut];
-    });
+async function fillDate(addButton, date = new Date()) {
+    const clockHours = buildClockHours(date);
 
     for (const [clockIn, clockOut] of clockHours) {
         await trackDate(addButton, clockIn, clockOut);
     }
 }
 
-async function fillMonth(addButton) {
-    const daysToFill = await getDaysToFillForMonth();
+async function fillMonth(addButton, date = new Date(), upToToday = false) {
+    const daysToFill = await getDaysToFillForMonth(date, upToToday);
 
     console.log("Days to fill", daysToFill);
 
-    const clockHours = WORKING_SCHEDULE.flatMap(schedule => {
-        return daysToFill.map(day => {
-            const begin = schedule.start.split(':');
-            const end = schedule.end.split(':');
-
-            day.setUTCHours(...begin, 0, 0);
-            const clockIn = day.toISOString().replace(/\.\d+(?:Z)$/, '')
-
-            day.setUTCHours(...end, 0, 0);
-            const clockOut = day.toISOString().replace(/\.\d+(?:Z)$/, '')
-
-            return [clockIn, clockOut];
-        });
-    });
-
-    console.log("Clock hours", clockHours);
-
-    for (const [clockIn, clockOut] of clockHours) {
-        await trackDate(addButton, clockIn, clockOut);
+    for (const day of daysToFill) {
+        await fillDate(addButton, day);
     }
 }
 
@@ -169,16 +157,22 @@ function fillInputDate(input, date) {
     input.dispatchEvent(new Event('focusout', { bubbles: true, cancelable: false, view: window }));
 }
 
-async function getDaysToFillForMonth(date = new Date()) {
+async function getDaysToFillForMonth(date = new Date(), upToToday = false) {
     date.setUTCHours(12, 0, 0, 0);
     const start = new Date(date.getUTCFullYear(), date.getUTCMonth(), 1, 12, 0, 0, 0);
 
-    const lastDayOfMonth = new Date(start.toISOString());
-    lastDayOfMonth.setUTCMonth(start.getUTCMonth() + 1, 0);
+    let lastDay;
+    if (upToToday) {
+        lastDay = new Date();
+        lastDay.setUTCHours(12, 0, 0, 0);
+    } else {
+        lastDay = new Date(start.toISOString());
+        lastDay.setUTCMonth(start.getUTCMonth() + 1, 0);
+    }
 
     const filledDays = await extractFilledDays();
     const daysToFill = [];
-    while (start <= lastDayOfMonth) {
+    while (start <= lastDay) {
         const isWeekDay = start.getDay() > 0 && start.getDay() < 6;
         const isFilled = filledDays.has(`${start.getDate()}/${start.getMonth() + 1}/${start.getFullYear()}`);
 
@@ -214,6 +208,27 @@ async function extractFilledDays() {
     console.log("Filled days", filledDays);
 
     return filledDays;
+}
+
+function buildClockHours(date) {
+    const minuteDiff = [...Array(WORKING_SCHEDULE.length)].map(_ => Math.ceil(Math.random() * ENTROPY_MINUTES));
+
+    const clockHours = WORKING_SCHEDULE.map((schedule, idx) => {
+        const begin = schedule.start.split(':');
+        const end = schedule.end.split(':');
+
+        date.setUTCHours(...begin, 0, 0);
+        date.setUTCMinutes(date.getUTCMinutes() + minuteDiff[idx]);
+        const clockIn = date.toISOString().replace(/\.\d+(?:Z)$/, '')
+
+        date.setUTCHours(...end, 0, 0);
+        date.setUTCMinutes(date.getUTCMinutes() + minuteDiff[minuteDiff.length - 1 - idx])
+        const clockOut = date.toISOString().replace(/\.\d+(?:Z)$/, '')
+
+        return [clockIn, clockOut];
+    });
+
+    return clockHours;
 }
 
 function sleep(ms) {
