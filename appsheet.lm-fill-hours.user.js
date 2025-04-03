@@ -6,7 +6,7 @@
 // @author       Gerard Ribugent <ribugent@gmail.com>
 // @match        https://www.appsheet.com/start/c1141281-d882-4fef-80fc-d82f5fd8094a?*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=appsheet.com
-// @grant        none
+// @grant        GM_addStyle
 // ==/UserScript==
 'use strict';
 
@@ -16,7 +16,34 @@ const WORKING_SCHEDULE = [
 ];
 const ENTROPY_MINUTES = 10;
 
+const css = `
+    button.lm-fill-hours-button {
+        padding: 4px 10px;
+        font-size: 0.778rem;
+        box-shadow: none;
+        color: #fff;
+        background-color: #05ac86;
+        min-width: 64px;
+        box-sizing: border-box;
+        font-family: inherit;
+        font-weight: 400;
+        line-height: 1.75;
+        border-radius: 4px;
+        border: 0;
+        cursor: pointer;
+        margin: 0;
+        display: inline-flex;
+        outline: 0;
+        position: relative;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        margin-right: 5px;
+    }
+`;
+
 (function() {
+    GM_addStyle(css);
     addEventListener("hashchange", event => detectDetailPage(new URL(event.newURL)));
     detectDetailPage(document.URL);
 })();
@@ -36,7 +63,7 @@ async function renderExtraButtons(sectionElement) {
     }
 
     const [addButton] = await waitFor('button[aria-label="Add"]')
-    const buttonClass = "f-jss36 f-jss7 f-jss15 f-jss6 navbar-primary-button f-jss16 f-jss26 f-jss28 f-jss18 f-jss128 f-jss99 f-jss107 f-jss98 navbar-primary-button f-jss108 f-jss118 f-jss120 f-jss110";
+    const buttonClass = "lm-fill-hours-button";
 
     const fillTodayButton = document.createElement('button');
     fillTodayButton.innerText = '✅ Fill Today';
