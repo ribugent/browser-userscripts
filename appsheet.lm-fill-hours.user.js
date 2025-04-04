@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Fill hours
 // @namespace    http://tampermonkey.net/
-// @version      2025-04-03
+// @version      2025-04-04
 // @description  Fill hours for our beloved LM time tracking
 // @author       Gerard Ribugent <ribugent@gmail.com>
 // @match        https://www.appsheet.com/start/c1141281-d882-4fef-80fc-d82f5fd8094a?*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=appsheet.com
 // @grant        GM_addStyle
+// @grant unsafeWindow
 // ==/UserScript==
 'use strict';
 
@@ -44,6 +45,7 @@ const css = `
 
 (function() {
     GM_addStyle(css);
+    setAjaxInterceptor();
     addEventListener("hashchange", event => detectDetailPage(new URL(event.newURL)));
     detectDetailPage(document.URL);
 })();
@@ -55,6 +57,31 @@ async function detectDetailPage(url) {
     if (stateKey.Name === "Detail") {
         await renderExtraButtons(sectionElement)
     }
+}
+
+function setAjaxInterceptor() {
+    const originalOpen = unsafeWindow.XMLHttpRequest.prototype.open;
+    const originalSend = unsafeWindow.XMLHttpRequest.prototype.send;
+
+    unsafeWindow.XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+        this._method = method;
+        this._url = url;
+        return originalOpen.apply(this, arguments);
+    };
+
+    unsafeWindow.XMLHttpRequest.prototype.send = function(body) {
+        if (this._method === "POST" && this._url.match(/^\/api\/template\/.+?\/table\/LM%20Time%20tracking\/row\?/)) {
+            try {
+                const data = JSON.parse(body);
+                data.row[5] = "Automatic";
+                arguments[0] = JSON.stringify(data);
+            } catch (e) {
+                console.error("Error parsing body, forwarding to original send", e);
+            }
+        }
+
+        return originalSend.apply(this, arguments);
+    };
 }
 
 async function renderExtraButtons(sectionElement) {
