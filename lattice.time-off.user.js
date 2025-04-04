@@ -11,6 +11,7 @@
 "use strict";
 
 const VACATION_DAYS = 24;
+const VACATION_DAYS_EARNED_PER_MONTH = 2;
 const REGEXES = [/^Vacation: \d/, /^Vacation: Carry/];
 
 (function () {
@@ -43,8 +44,8 @@ async function onTimeOffPage() {
   orderedPolicies.forEach(policy => {
     policy.style.removeProperty("scroll-snap-align")
 
-    if (policy.innerText.match(/days?.*?available/) && !policy.classList.contains("patched-stats")) {
-      patchVacationStats(policy, policy.innerText.match(/^Vacation: \d/));
+    if (policy.innerText.match(/^Vacation: \d/) && !policy.classList.contains("patched-stats")) {
+      patchEarnedVacationStats(policy);
     }
   });
 
@@ -62,22 +63,16 @@ function extractPolicy(policies, match) {
   }
 }
 
-function patchVacationStats(vacationPolicy, isEarned) {
-  const [earnedRaw, ...earnedText] = vacationPolicy.childNodes[0].childNodes[1].childNodes[0].innerText.split(" ");
-  const [scheduledRaw] = vacationPolicy.childNodes[0].childNodes[2].childNodes[0].innerText.split(' ')
+function patchEarnedVacationStats(vacationPolicy) {
+  const [availableRaw, ...availableText] = vacationPolicy.childNodes[0].childNodes[1].childNodes[0].innerText.split(" ");
 
-  const earnedAvailable = parseFloat(earnedRaw);
-  const scheduled = parseFloat(scheduledRaw);
+  const totalEarnedToday = (new Date().getMonth() + 1) * 2;
+  const spentDays = totalEarnedToday - availableRaw;
+  const realAvailable = VACATION_DAYS - spentDays;
 
-  const totalAvailable = isEarned ? VACATION_DAYS : earnedAvailable;
-  const available = totalAvailable - scheduled;
-  const availableText = [`${available}/${totalAvailable}`, ...earnedText].join(" ");
-
-  vacationPolicy.childNodes[0].childNodes[1].childNodes[0].innerText = availableText;
-
-  if (isEarned) {
-    vacationPolicy.childNodes[0].childNodes[2].childNodes[0].innerText += ` (${earnedAvailable} earned)`;
-  }
+  const newAvailableText = [realAvailable, ...availableText].join(" ");
+  vacationPolicy.childNodes[0].childNodes[1].childNodes[0].innerText = newAvailableText;
+  vacationPolicy.childNodes[0].childNodes[2].childNodes[0].innerText += ` (${availableRaw} earned balance)`;
 
   vacationPolicy.classList.add("patched-stats");
 }
