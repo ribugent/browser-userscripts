@@ -70,7 +70,7 @@ async function renderExtraButtons(sectionElement) {
     fillTodayButton.id='fillToday';
     fillTodayButton.type = 'button'
     fillTodayButton.className = buttonClass;
-    setOnClickFullButton(fillTodayButton, () => fillDate(addButton));
+    setOnClickFullButton(fillTodayButton, () => fillDate());
     addButton.parentElement.prepend(fillTodayButton);
 
     const fillUpToTodayButton = document.createElement('button');
@@ -78,7 +78,7 @@ async function renderExtraButtons(sectionElement) {
     fillUpToTodayButton.id='fillUpToToday';
     fillUpToTodayButton.type = 'button'
     fillUpToTodayButton.className = buttonClass;
-    setOnClickFullButton(fillUpToTodayButton, () => fillMonth(addButton, new Date(), true));
+    setOnClickFullButton(fillUpToTodayButton, () => fillMonth(new Date(), true));
     addButton.parentElement.prepend(fillUpToTodayButton);
 
     const fillCurrentMonth = document.createElement('button');
@@ -86,7 +86,7 @@ async function renderExtraButtons(sectionElement) {
     fillCurrentMonth.id='fillMonth';
     fillCurrentMonth.type = 'button'
     fillCurrentMonth.className = buttonClass;
-    setOnClickFullButton(fillCurrentMonth, () => fillMonth(addButton));
+    setOnClickFullButton(fillCurrentMonth, () => fillMonth());
     addButton.parentElement.prepend(fillCurrentMonth);
 
     const fillPreviousMonth = document.createElement('button');
@@ -97,7 +97,7 @@ async function renderExtraButtons(sectionElement) {
     setOnClickFullButton(fillPreviousMonth, () => {
         const date = new Date();
         date.setUTCMonth(date.getUTCMonth() - 1);
-        return fillMonth(addButton, date);
+        return fillMonth(date);
     });
     addButton.parentElement.prepend(fillPreviousMonth);
 }
@@ -111,26 +111,27 @@ function setOnClickFullButton(button, callback) {
     }
 }
 
-async function fillDate(addButton, date = new Date()) {
+async function fillDate(date = new Date()) {
     const clockHours = buildClockHours(date);
 
     for (const [clockIn, clockOut] of clockHours) {
         console.log("Filling", clockIn, clockOut);
-        await trackDate(addButton, clockIn, clockOut);
+        await trackDate(clockIn, clockOut);
     }
 }
 
-async function fillMonth(addButton, date = new Date(), upToToday = false) {
+async function fillMonth(date = new Date(), upToToday = false) {
     const daysToFill = await getDaysToFillForMonth(date, upToToday);
 
     console.log("Days to fill", daysToFill);
 
     for (const day of daysToFill) {
-        await fillDate(addButton, day);
+        await fillDate(day);
     }
 }
 
-async function trackDate(addButton, clockInDate, clockOutDate) {
+async function trackDate(clockInDate, clockOutDate) {
+    const addButton = document.querySelector('button[aria-label="Add"]');
     addButton.click();
 
     const trackForm = document.querySelector('div[aria-label="Manual Entry"]');
