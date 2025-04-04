@@ -23,11 +23,12 @@ These scripts will not work without Tampermonkey installed. Please install it fo
 
 ### AppSheet lm fill hours
 
-Extends AppSheet with a few extra buttons to fill hours in the time tracking form. The script adds random minute variations (up to 10 minutes) to clock-in and clock-out times to create more natural-looking time entries rather than exact times.
+Extends AppSheet with a few extra buttons to fill hours in the time tracking form, with these features:
+
+- Random minute variations (up to 10 minutes) to clock-in and clock-out times, these are pre-configured, adjust them as needed.
+- Tracking entries are send as "Automatic" instead of "Manual".
 
 [Install](https://github.com/ribugent/browser-userscripts/raw/refs/heads/main/appsheet.lm-fill-hours.user.js)
-
-> Notes: this script comes with pre-configured working schedule, set and adjust it as needed.
 
 ### Lattice Time-Off Enhancement
 
