@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fill hours
 // @namespace    http://tampermonkey.net/
-// @version      2025-04-04
+// @version      2025-04-07
 // @description  Fill hours for our beloved LM time tracking
 // @author       Gerard Ribugent <ribugent@gmail.com>
 // @match        https://www.appsheet.com/start/c1141281-d882-4fef-80fc-d82f5fd8094a?*
@@ -74,6 +74,7 @@ function setAjaxInterceptor() {
             try {
                 const data = JSON.parse(body);
                 data.row[5] = "Automatic";
+                data.row[17] = data.row[8]; // Set as a row date the clock-out date
                 arguments[0] = JSON.stringify(data);
             } catch (e) {
                 console.error("Error parsing body, forwarding to original send", e);
