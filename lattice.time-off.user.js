@@ -10,6 +10,7 @@
 // ==/UserScript==
 "use strict";
 
+const CAROUSEL_CLASS = "_scroll_kt8wt_1";
 const VACATION_DAYS = 24;
 const VACATION_DAYS_EARNED_PER_MONTH = 2;
 const REGEXES = [/^Vacation: \d/, /^Vacation: Carry/];
@@ -28,7 +29,7 @@ const REGEXES = [/^Vacation: \d/, /^Vacation: Carry/];
 
 async function onTimeOffPage() {
   const policies = [
-    ...await waitFor("ul.Carousel_scroll__i91Oz li"),
+    ...await waitFor(`ul.${CAROUSEL_CLASS} li`),
   ];
 
   const orderedPolicies = [];
@@ -49,7 +50,7 @@ async function onTimeOffPage() {
     }
   });
 
-  const policiesList = document.querySelector("ul.Carousel_scroll__i91Oz");
+  const policiesList = document.querySelector(`ul.${CAROUSEL_CLASS}`);
   policiesList.replaceChildren(...orderedPolicies);
   policiesList.scroll(0 ,0);
 };
