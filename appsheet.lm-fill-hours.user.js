@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fill hours
 // @namespace    http://tampermonkey.net/
-// @version      2025-04-07
+// @version      2025-04-25
 // @description  Fill hours for our beloved LM time tracking
 // @author       Gerard Ribugent <ribugent@gmail.com>
 // @match        https://www.appsheet.com/start/c1141281-d882-4fef-80fc-d82f5fd8094a?*
@@ -16,6 +16,24 @@ const WORKING_SCHEDULE = [
     { start: '12:30', end: '16:30' }
 ];
 const ENTROPY_MINUTES = 10;
+
+const GIRONA_COMPANY_HOLIDAYS = new Set([
+    "1/1/2025",    // New Year's Day
+    "6/1/2025",    // Epiphany
+    "18/4/2025",   // Good Friday
+    "21/4/2025",   // Easter Monday
+    "1/5/2025",    // Labor Day
+    "24/6/2025",   // St. Jean's Day
+    "25/7/2025",   // St. James' Day
+    "15/8/2025",   // Assumption of Mary
+    "11/9/2025",   // Catalonia's Day
+    "29/10/2025",  // St. Narcis' Eve
+    "5/12/2025",   // Constitution Day (Observance)
+    "8/12/2025",   // Immaculate Conception
+    "25/12/2025",  // Christmas Day
+    "26/12/2025",  // St. Stephen's Day
+    "31/12/2025"   // New Year's Eve
+]);
 
 const css = `
     button.lm-fill-hours-button {
@@ -211,9 +229,11 @@ async function getDaysToFillForMonth(date = new Date(), upToToday = false) {
     const daysToFill = [];
     while (start <= lastDay) {
         const isWeekDay = start.getDay() > 0 && start.getDay() < 6;
-        const isFilled = filledDays.has(`${start.getDate()}/${start.getMonth() + 1}/${start.getFullYear()}`);
+        const dmyDate = `${start.getDate()}/${start.getMonth() + 1}/${start.getFullYear()}`;
+        const isFilled = filledDays.has(dmyDate);
+        const isCompanyHoliday = GIRONA_COMPANY_HOLIDAYS.has(dmyDate);
 
-        if (isWeekDay && !isFilled) {
+        if (isWeekDay && !isFilled && !isCompanyHoliday) {
             daysToFill.push(new Date(start.getTime()));
         }
 
