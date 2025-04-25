@@ -27,6 +27,7 @@ Extends AppSheet with a few extra buttons to fill hours in the time tracking for
 
 - Random minute variations (up to 10 minutes) to clock-in and clock-out times, these are pre-configured, adjust them as needed.
 - Tracking entries are send as "Automatic" instead of "Manual".
+- Girona office holidays are defined in the script and will not be filled.
 
 [Install](https://github.com/ribugent/browser-userscripts/raw/refs/heads/main/appsheet.lm-fill-hours.user.js)
 
